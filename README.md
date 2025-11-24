@@ -1,9 +1,10 @@
-Database setup
+# 🗃️ Database setup
+```sql
 CREATE DATABASE IF NOT EXISTS comlabsystem;
 use comlabsystem;
 
-CREATE TABLE IF NOT EXISTS users (
-id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXIST users(
+id INT NOT NULL AUTO_INCREMENT  PRIMARY KEY,
 student_number VARCHAR(11) UNIQUE NOT NULL,
 first_name VARCHAR(100) NOT NULL,
 middle_name VARCHAR(100),
@@ -15,3 +16,4 @@ password VARCHAR(255) NOT NULL,
 account_status int(11) NOT NULL,
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+```
