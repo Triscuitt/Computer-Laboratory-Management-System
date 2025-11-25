@@ -89,7 +89,7 @@ function createUser($student_number, $first_name, $middle_name, $last_name, $suf
     $stmt = $conn->prepare("INSERT INTO users (student_number, first_name, middle_name, last_name, suffix, username, email, password, account_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)");
     $stmt->bind_param("ssssssss", $student_number, $first_name, $middle_name, $last_name, $suffix, $username, $email, $hashedPassword);
     $result = $stmt->execute();
-    $userId = $stmt->insert_id;
+    $userId = $conn->insert_id;
 
 
     $mail = new PHPMailer(true);
@@ -101,24 +101,26 @@ function createUser($student_number, $first_name, $middle_name, $last_name, $suf
     $mail->Port = 587;
 
     $mail->SMTPKeepAlive = true;
-    $mail->Username = "trjistanbendoyr@gmail.com";
-    $mail->Password = "woar pqng vyro kazq ";
+    $mail->Username = "computerlaboratorymanagement@gmail.com";
+    $mail->Password = "bezs puqx ssbs xjgw";
 
     $mail->isHTML(true);
 
     if ($result) {
-        $otp = rand(100000, 999999);
+        $otp = generateOtp($userId);
         $_SESSION['otp'] = $otp;
         $_SESSION['email'] = $email;
-        $mail->setFrom("trjistanbendoyr@gmail.com", "OTP Verification");
+        $mail->setFrom("computerlaboratorymanagement@gmail.com", "Computer Laboratory Management System");
         $mail->addAddress($_POST['email']);
         $mail->Subject = "Account Activation";
-        $mail->Body = "Hello $first_name, This is a Test  <br><br>
-            This is your OTP: $otp <br>
-            Please enter this OTP to verify your email <br>";
-            
-
-
+        $mail->Body = "Dear $username, <br><br>
+            To complete your verification process, please use the One-Time Password (OTP) provided below: <br><br>
+            Verification Code: $otp <br><br>
+            This code is valid for the next 5 minutes. Please do not share this OTP with anyone for security reasons. <br>
+            If you did not request this verification, please ignore this email or contact our support team immediately.<br><br>
+            Thanks, <br>
+            Comlabsystem Team.
+            ";
 
         try {
             $mail->send();
@@ -137,7 +139,7 @@ function createUser($student_number, $first_name, $middle_name, $last_name, $suf
     return $result;
 }
 
-function verifyOtp($email){
+function updateAccount($email){
     $conn = getConnection();
     $stmt = $conn->prepare("UPDATE users SET account_status = 1 WHERE email = ? LIMIT 1");
     $stmt->bind_param('s', $email);
@@ -147,23 +149,55 @@ function verifyOtp($email){
 
 }
 
-function verifyAccount($email){
+function verifiedAccount($email){
     $conn = getConnection();
     $stmt = $conn->prepare("SELECT account_status FROM users WHERE email = ? LIMIT 1 ");
     $stmt->bind_param('s', $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    $stmt->close();
-    $conn->close();
-
+    $output = null;
+    
     if ($row = $result->fetch_assoc()) {
         $output = $row['account_status'];
     }
+    $stmt->close();
+    $conn->close();
+
     return $output;
 }
 
+function verifyOtp($id){
+    $conn = getConnection();
+    $stmt = $conn->prepare("SELECT code FROM verification_codes WHERE user_id = ? AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+   
+    $verificationCode = null;
 
+    if ($row = $result->fetch_assoc()) {
+        $verificationCode = $row['code'];
 
+    }
+    $stmt->close();
+    $conn->close();
     
+    return $verificationCode;
 
+}
+
+function generateOtp($userId){
+    $conn = getConnection();
+    $otp = rand(100000, 999999);
+    $hashedOtp = password_hash($otp, PASSWORD_DEFAULT);
+    $stmt = $conn->prepare("INSERT INTO verification_codes (user_id, code)  VALUES (?, ?)");
+    $stmt->bind_param('is', $userId, $hashedOtp);
+    $stmt->execute();
+
+    $stmt->close();
+    $conn->close();
+
+    return $otp;
+
+}
