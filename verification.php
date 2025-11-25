@@ -4,21 +4,22 @@
     require_once "dbconnection.php";
     session_start();
 
-         $email = $_SESSION['email'];
-        if (isset($_POST['verify'])) {
-            $otp = $_SESSION['otp'];
-            $otp_code = $_POST['otp_code'];
 
-            if ($otp != $otp_code) {
-                $_SESSION['popUpMessage'] = "Invalid OTP code";
-            } else {
-                verifyOtp($email);
-                $_SESSION['popUpMessage'] = "Registration Succesful You can now <a href=login.php>Login</a>. ";
-                headto('registration.php');
-                exit;
+         $email = $_SESSION['email'];
+         if(isset($_POST['verify'])){
+            $enteredOtp = $_POST['otp_code'];
+            $userId = getUserId($email);
+            $storedHash = verifyOtp($userId);
+            if(password_verify($enteredOtp, $storedHash)) {
+                updateAccount($email);
+                headto('success.php');
+                
+                
+            }else {
+                $_SESSION['popUpMessage'] = "Invalid or expired OTP";
             }
-        } 
-    
+         }
+
 
 ?>
 
@@ -32,12 +33,13 @@
 <body>
     <h2>Verify your Account</h2>
 
-    <p>Your Email is: <?php echo $email?></p>
+    <p>Verification sent to: <?php echo $email?> please check your inbox</p>
 
     <form method="POST">
         <input type="text" name="otp_code" placeholder="Enter OTP"> <br><br>
         <button type="submit" name="verify">Verify</button>
-        <button type="submit" name="resend">Resend OTP</button>
+        <button type="submit" name="resend">Resend OTP</button><br><br>
     </form>
+    <?php displayMessage()?>
 </body>
 </html>
