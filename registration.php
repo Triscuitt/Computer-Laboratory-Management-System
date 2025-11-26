@@ -1,10 +1,12 @@
 <?php
 require "dbconnection.php";
 require "utilities/utils.php";
-require "utilities/db.php";
+require "utilities/validation.php";
+require "utilities/queries.php";
 
 session_start();
 checkPost();
+
 
 function checkPost()
 {
@@ -15,33 +17,31 @@ function checkPost()
 
 function register($student_number, $first_name, $middle_name, $last_name, $suffix, $username, $email, $password, $confirmPassword)
 {
-    $student_number = trim($student_number);
+    $stud_no = validateStudentNumber($student_number);
     $fname = trim($first_name);
     $midname = trim($middle_name);
     $lname = trim($last_name);
     $suffix = trim($suffix);
-    $email = cleanEmail($email);
+    $email = trim($email);
     $username = trim($username);
     $password = trim($password);
     $confirmPassword =  trim($confirmPassword);
+    $validateEmail = validateEmail($email);
+    $validatePassword = validatePassword($password, $confirmPassword);
+    $field = validateEmptyField($student_number, $fname, $lname, $email, $username, $password, $confirmPassword);
+    $length = validateLength($fname, $lname);
 
-        if (empty($fname) || empty($lname) || empty($student_number) || empty($username) || empty($email) || empty($password) || empty($confirmPassword)) {
-            $_SESSION['popUpMessage'] = "Input fields required.";
-        } else if (strlen($fname) < 2 || strlen($lname) < 2) {
-            $_SESSION['popUpMessage'] = "Username must be atleast 2 characters long.";
-            /*}else if (checkUsername($fname, $midname, $lname, $suffix)) {
-        $_SESSION['popUpMessage'] = "Name already exists."; */
-        } else if (!preg_match('/^\d{4}-\d{5}$/', $student_number)) {
-            $_SESSION['popUpMessage'] = "Invalid student number format.";
-        } else if (checkEmail($email)) {
-            $_SESSION['popUpMessage'] = "Email already exists.";
-            /*}else if (!str_ends_with($email, '@dyci.edu.ph')){
-        $_SESSION['popUpMessage'] = "Registration requires institutional email"; */
-        } else if (strlen($password) < 8) {
-            $_SESSION['popUpMessage'] = "Password must be atleast 8 characters long.";
-        } else if ($password != $confirmPassword) {
-            $_SESSION['popUpMessage'] = "Passwords do not match.";
-        } else if (createUser($student_number, $fname, $midname, $lname, $suffix, $username, $email, password_hash($password, PASSWORD_DEFAULT))) {
+        if ($field !== true) {
+            $_SESSION['popUpMessage'] = $field;
+        }else if ($length !== true) {
+            $_SESSION['popUpMessage'] = $length;
+        }else if ($stud_no !== true) {
+            $_SESSION['popUpMessage'] = $stud_no; 
+        }else if ($validateEmail !== true){
+            $_SESSION['popUpMessage'] = $validateEmail; 
+        }else if ($validatePassword !== true) {
+            $_SESSION['popUpMessage'] = $validatePassword;
+        }else if (createUser($student_number, $fname, $midname, $lname, $suffix, $username, $email, password_hash($password, PASSWORD_DEFAULT))) {
             headto('verification.php');
             exit;
         } else {
@@ -74,7 +74,7 @@ function register($student_number, $first_name, $middle_name, $last_name, $suffi
             <input type="password" name="password" placeholder="Enter Password">
             <input type="password" name="confirmPassword" placeholder="Confirm Password"> <br><br>
             <button type="submit" name="registerBtn">Register</button>
-            <p>Already have an account? <a href="login.php">Login</a></p>
+            <p>Already have an account? <a href="login.php">Login here</a></p>
         </form>
         <?php displayMessage() ?>
 

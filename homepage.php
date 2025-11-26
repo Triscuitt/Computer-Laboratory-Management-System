@@ -1,6 +1,6 @@
 <?php 
     session_start();
-    require_once "utilities/db.php";
+    require_once "utilities/queries.php";
     require_once "utilities/utils.php";
 
     checkPost();
