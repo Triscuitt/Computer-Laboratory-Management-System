@@ -116,7 +116,7 @@ function verifyOtpInput($enteredOtp) {
         
         return [
             'status' => true,
-            'message' => 'Account verified successfully!',
+            //'message' => 'Account verified successfully!',
             'redirect' => 'success.php'
         ];
      } else {

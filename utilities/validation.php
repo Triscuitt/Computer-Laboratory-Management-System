@@ -3,7 +3,7 @@
         if(empty($field) || empty($field1) || empty($field2) || empty($field3) || empty($field4 )|| empty($field5) || empty($field6)) {
             return [
                 'status' => false,
-                'message' => "This field is required."
+                'message' => "Empty field is required."
             ];
         }
 
@@ -62,12 +62,12 @@
                 'status' => false,
                 'message' => 'Please enter a valid email address.'
             ];
-        } /*else if(!str_ends_with($email, '@dyci.edu.ph')) {
+        /*} else if(!str_ends_with($email, '@dyci.edu.ph')) {
             return [
                 'status' => false,
-                'message' -> 'Registration requires institutional email.'
-            ];
-        } */else if (checkEmail($email)) {
+                'message' => 'Registration requires institutional email.'
+            ]; */
+        } else if (checkEmail($email)) {
             return [
                 'status' => false,
                 'message' => 'Email is already Taken.'
@@ -96,7 +96,7 @@
                 'message' => 'Passwords do not match.'
             ];
         }
-        
+
         return ['status' => true];
 }
 
