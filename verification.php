@@ -1,25 +1,30 @@
 <?php 
-    require "utilities/utils.php";
-    require "utilities/db.php";
-    require_once "dbconnection.php";
     session_start();
+    require "utilities/utils.php";
+    require "utilities/queries.php";
+    require_once "dbconnection.php";
+
 
          $email = $_SESSION['email'];
-        if (isset($_POST['verify'])) {
-            $otp = $_SESSION['otp'];
-            $otp_code = $_POST['otp_code'];
-
-            if ($otp != $otp_code) {
-                $_SESSION['popUpMessage'] = "Invalid OTP code";
+         if(isset($_POST['verify'])){
+            $enteredOtp = $_POST['otp_code'] ?? '';
+            $result = verifyOtpInput($enteredOtp);
+            
+            if($result['status']) {
+                $_SESSION['alertMessage'] = $result['message'];
+                headto($result['redirect']);
             } else {
-                verifyOtp($email);
-                $_SESSION['popUpMessage'] = "Registration Succesful You can now <a href=login.php>Login</a>. ";
-                headto('registration.php');
-                exit;
-            }
-        } 
-    
+                $_SESSION['alertMessage'] = $result['message'];
+                clearPost();
 
+            }
+        }
+            if(isset($_POST['resend'])){
+                $result = resendOtp();
+                $_SESSION['alertMessage'] = $result['message'];
+                clearPost();
+            }
+           
 ?>
 
 <!DOCTYPE html>
@@ -32,12 +37,13 @@
 <body>
     <h2>Verify your Account</h2>
 
-    <p>Your Email is: <?php echo $email?></p>
+    <!--<p>Verification sent to: <?php echo $email?> please check your inbox</p> -->
 
     <form method="POST">
-        <input type="text" name="otp_code" placeholder="Enter OTP"> <br><br>
+        <input type="text" name="otp_code" placeholder="Enter OTP" maxlength="6"> <br><br>
         <button type="submit" name="verify">Verify</button>
-        <button type="submit" name="resend">Resend OTP</button>
+        <button type="submit" name="resend">Resend OTP</button><br><br>
     </form>
+    <?php displayMessage();?>
 </body>
 </html>

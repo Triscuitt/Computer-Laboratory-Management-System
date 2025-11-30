@@ -1,12 +1,11 @@
 <?php 
+    session_start();
     require "dbconnection.php";
     require "utilities/utils.php";
-    require "utilities/db.php";
-    session_start();
+    require "utilities/queries.php";
     
     checkIfLoggedIn();
     checkPost();
-    displayMessage();
 
     function checkIfLoggedIn(){
         if(isset($_SESSION['loggedInUser'])) {
@@ -25,16 +24,16 @@
         $email = trim($email);
         $password = trim($password);
 
-        if(password_verify($password, getHashedPassword($email)) && verifyAccount($email)) {
+        if(password_verify($password, getHashedPassword($email)) && verifiedAccount($email)) {
             session_regenerate_id(true);
             $_SESSION["loggedInUser"] = getUserId($email);
             headto("homepage.php");
             exit;
-        } else if (!verifyAccount($email)) {
-            $_SESSION['popUpMessage'] = "Account not Activated.";
+        } else if (!verifiedAccount($email)) {
+            $_SESSION['alertMessage'] = "Account not found or not activated.";
         }
         else {
-            $_SESSION['popUpMessage'] = "Invalid Login";
+            $_SESSION['alertMessage'] = "Invalid username or password";
         }
     }
 ?>
@@ -47,17 +46,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
 </head>
-<h1>Computer Laboratory Management System</h1>
 <body>
+    <h1>Computer Laboratory Management System</h1>
     <h2>Login</h2>
     <div clas="container">
         <form method="POST">
             <input type="email" name="email" placeholder="Enter Email"> <br><br>
             <input type="password" name="password" placeholder="Enter Password"> <br><br>
             <button type="submit" name="loginBtn">Login</button>
-            <p>Don't have an Account? <a href="registration.php">Register</a></p>
+            <p>Don't have an Account? <a href="registration.php">Register</a></p><br>
         </form>
-        <?php displayMessage() ?>
+        <?php displayMessage()?>
 
     </div>
 </body>
