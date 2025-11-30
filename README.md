@@ -19,9 +19,33 @@ CREATE TABLE users(
 
 CREATE TABLE verification_codes (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NOT NULL,
+    user_id INT NOT NULL,
     code VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL 5 MINUTE),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE equipment (
+    equipment_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(100),
+    status ENUM('Available', 'Borrowed', 'Maintenance') DEFAULT 'Available'
+);
+
+CREATE TABLE borrow (
+    borrow_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    equipment_id INT NOT NULL,
+    borrow_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    return_date TIMESTAMP NULL,
+    status ENUM('Borrowed', 'Returned', 'Overdue') DEFAULT 'Borrowed',
+
+    FOREIGN KEY (user_id) REFERENCES users(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (equipment_id) REFERENCES equipment(equipment_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
 );
 ```
