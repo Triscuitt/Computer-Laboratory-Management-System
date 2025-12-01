@@ -1,8 +1,5 @@
 # 🗃️ Database setup
 ```sql
-CREATE DATABASE comlabsystem;
-use comlabsystem;
-
 CREATE TABLE users(
     id INT NOT NULL AUTO_INCREMENT  PRIMARY KEY,
     student_number VARCHAR(11) UNIQUE NOT NULL,
@@ -29,7 +26,7 @@ CREATE TABLE equipment (
     equipment_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     category VARCHAR(100),
-    status ENUM('Available', 'Borrowed', 'Maintenance') DEFAULT 'Available'
+    status ENUM('Available', 'Borrowed', 'With Error', 'Pulled out') DEFAULT 'Available'
 );
 
 CREATE TABLE borrow (
@@ -45,6 +42,19 @@ CREATE TABLE borrow (
         ON DELETE CASCADE,
 
     FOREIGN KEY (equipment_id) REFERENCES equipment(equipment_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE TABLE request (
+	request_id INT AUTO_INCREMENT PRIMARY KEY,
+    submitter_id INT NOT NULL,
+    request_title VARCHAR(50) NOT NULL,
+    request_type ENUM('Software installation', 'Purchase', 'Peripheral', 'Hardware') DEFAULT 'Hardware',
+    request_priority ENUM('Low', 'Medium', 'High'),
+    request_description VARCHAR(250),
+    
+    FOREIGN KEY (submitter_id) REFERENCES users(id)
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
