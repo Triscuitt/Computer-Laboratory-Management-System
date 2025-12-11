@@ -9,16 +9,37 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 
 $labs = ['All Labs', 'Nexus Lab', 'Sandbox Lab', 'Raise Lab', 'EdTech Lab'];
 $selected_lab = $_GET['lab'] ?? 'All Labs';
+$search_query = $_GET['search'] ?? '';
 
 // Build filter condition safely
 $lab_filter = '';
+$search_filter = '';
 $params = [];
 $types = '';
 
 if ($selected_lab !== 'All Labs') {
-    $lab_filter = "WHERE s.lab_name = ?";
+    $lab_filter = "s.lab_name = ?";
     $params[] = $selected_lab;
-    $types = 's';
+    $types .= 's';
+}
+
+if (!empty($search_query)) {
+    $search_condition = "(s.session_code LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ? OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?)";
+    $search_param = "%{$search_query}%";
+
+    if ($lab_filter) {
+        $search_filter = " AND " . $search_condition;
+    } else {
+        $search_filter = $search_condition;
+    }
+
+    $params = array_merge($params, [$search_param, $search_param, $search_param, $search_param]);
+    $types .= 'ssss';
+}
+
+$where_clause = '';
+if ($lab_filter || $search_filter) {
+    $where_clause = "WHERE " . ($lab_filter ? $lab_filter : '') . $search_filter;
 }
 
 // Active Sessions
@@ -26,13 +47,13 @@ $active_sql = "SELECT s.*, u.first_name, u.last_name,
                (SELECT COUNT(*) FROM session_attendance a WHERE a.session_id = s.session_id) as attendees
                FROM lab_sessions s 
                JOIN users u ON s.faculty_id = u.id 
-               $lab_filter AND s.is_active = 1 
+               $where_clause AND s.is_active = 1 
                ORDER BY s.created_at DESC";
 
 $stmt = $conn->prepare($active_sql);
 if ($types) $stmt->bind_param($types, ...$params);
 $stmt->execute();
-$active_result = $stmt->get_result();   // Fixed: use get_result(), not num_rows directly
+$active_result = $stmt->get_result();
 
 // Past Sessions
 $past_sql = "SELECT s.*, u.first_name, u.last_name,
@@ -40,13 +61,13 @@ $past_sql = "SELECT s.*, u.first_name, u.last_name,
              TIMESTAMPDIFF(MINUTE, s.created_at, COALESCE(s.expires_at, NOW())) as duration_min
              FROM lab_sessions s 
              JOIN users u ON s.faculty_id = u.id 
-             $lab_filter AND s.is_active = 0 
+             $where_clause AND s.is_active = 0 
              ORDER BY s.created_at DESC LIMIT 100";
 
 $stmt = $conn->prepare($past_sql);
 if ($types) $stmt->bind_param($types, ...$params);
 $stmt->execute();
-$past_result = $stmt->get_result();     // Fixed: same here
+$past_result = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -75,7 +96,84 @@ $past_result = $stmt->get_result();     // Fixed: same here
             font-weight: 700;
         }
 
-        /* LAB FILTER BUTTONS — NOW FULLY VISIBLE & GORGEOUS */
+        /* SEARCH BAR */
+        .search-container {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 0 4px rgba(41, 128, 185, 0.1);
+        }
+
+        .search-btn {
+            padding: 14px 32px;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover {
+            background: #206694;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(41, 128, 185, 0.3);
+        }
+
+        .clear-btn {
+            padding: 14px 24px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .clear-btn:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .search-info {
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: #e8f4f8;
+            border-left: 4px solid #2980b9;
+            border-radius: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        /* LAB FILTER BUTTONS */
         .lab-filter {
             display: flex;
             flex-wrap: wrap;
@@ -209,14 +307,44 @@ $past_result = $stmt->get_result();     // Fixed: same here
             <h1>Lab Session Records</h1>
         </div>
 
-        <!-- LAB FILTER BUTTONS — NOW VISIBLE & STUNNING -->
+        <!-- SEARCH BAR -->
+        <div class="search-container">
+            <form method="GET" action="" class="search-form">
+                <input type="hidden" name="lab" value="<?= htmlspecialchars($selected_lab) ?>">
+                <input
+                    type="text"
+                    name="search"
+                    class="search-input"
+                    placeholder="Search by session code or faculty name..."
+                    value="<?= htmlspecialchars($search_query) ?>">
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search"></i> Search
+                </button>
+                <?php if (!empty($search_query)): ?>
+                    <a href="?lab=<?= urlencode($selected_lab) ?>" class="clear-btn">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                <?php endif; ?>
+            </form>
+            <?php if (!empty($search_query)): ?>
+                <div class="search-info">
+                    <i class="fas fa-info-circle"></i>
+                    Showing results for: <strong>"<?= htmlspecialchars($search_query) ?>"</strong>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- LAB FILTER BUTTONS -->
         <div class="lab-filter">
             <?php foreach ($labs as $lab):
                 $class = strtolower(str_replace(' ', '-', $lab));
                 $is_active = ($selected_lab === $lab) ? 'active' : '';
+                $url = '?lab=' . urlencode($lab);
+                if (!empty($search_query)) {
+                    $url .= '&search=' . urlencode($search_query);
+                }
             ?>
-                <a href="?lab=<?= urlencode($lab) ?>"
-                    class="filter-btn <?= $class ?> <?= $is_active ?>">
+                <a href="<?= $url ?>" class="filter-btn <?= $class ?> <?= $is_active ?>">
                     <?= $lab === 'All Labs' ? 'All Labs' : $lab ?>
                 </a>
             <?php endforeach; ?>
@@ -246,7 +374,10 @@ $past_result = $stmt->get_result();     // Fixed: same here
             <?php endwhile; ?>
         <?php else: ?>
             <div class="empty-state">
-                <h3>No active sessions <?= $selected_lab !== 'All Labs' ? "in $selected_lab" : '' ?></h3>
+                <h3>No active sessions found</h3>
+                <?php if (!empty($search_query)): ?>
+                    <p>Try adjusting your search terms</p>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
@@ -273,7 +404,10 @@ $past_result = $stmt->get_result();     // Fixed: same here
             <?php endwhile; ?>
         <?php else: ?>
             <div class="empty-state">
-                <h3>No past sessions recorded <?= $selected_lab !== 'All Labs' ? "for $selected_lab" : '' ?></h3>
+                <h3>No past sessions found</h3>
+                <?php if (!empty($search_query)): ?>
+                    <p>Try adjusting your search terms</p>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

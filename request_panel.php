@@ -12,22 +12,45 @@ $table_exists = $conn->query("SHOW TABLES LIKE 'request'")->num_rows > 0;
 
 $requests = [];
 $total_requests = 0;
+$search_query = $_GET['search'] ?? '';
 
 if ($table_exists) {
     $sql = "SELECT r.*, u.first_name, u.last_name, u.student_number, u.role
             FROM request r
-            LEFT JOIN users u ON r.submitter_id = u.id
-            ORDER BY 
+            LEFT JOIN users u ON r.submitter_id = u.id";
+
+    // Add search filter if query exists
+    if (!empty($search_query)) {
+        $sql .= " WHERE (r.request_title LIKE ? 
+                  OR r.request_description LIKE ? 
+                  OR u.first_name LIKE ? 
+                  OR u.last_name LIKE ?
+                  OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?
+                  OR u.student_number LIKE ?)";
+    }
+
+    $sql .= " ORDER BY 
                 FIELD(r.request_priority, 'High', 'Medium', 'Low'),
                 r.request_id DESC";
 
-    $result = $conn->query($sql);
+    $stmt = $conn->prepare($sql);
+
+    if (!empty($search_query)) {
+        $search_param = "%{$search_query}%";
+        $stmt->bind_param('ssssss', $search_param, $search_param, $search_param, $search_param, $search_param, $search_param);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+
     if ($result) {
         while ($row = $result->fetch_assoc()) {
             $requests[] = $row;
         }
         $total_requests = count($requests);
     }
+
+    $stmt->close();
 }
 ?>
 
@@ -74,6 +97,83 @@ if ($table_exists) {
         .header-btn:hover {
             transform: translateY(-4px);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* SEARCH BAR */
+        .search-container {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 0 4px rgba(41, 128, 185, 0.1);
+        }
+
+        .search-btn {
+            padding: 14px 32px;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover {
+            background: #206694;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(41, 128, 185, 0.3);
+        }
+
+        .clear-btn {
+            padding: 14px 24px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .clear-btn:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .search-info {
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: #e8f4f8;
+            border-left: 4px solid #2980b9;
+            border-radius: 8px;
+            color: #2c3e50;
+            font-weight: 500;
         }
 
         .content-card {
@@ -210,6 +310,12 @@ if ($table_exists) {
             color: #64b5f6;
             text-shadow: 0 0 10px rgba(100, 180, 255, 0.4);
         }
+
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -232,6 +338,34 @@ if ($table_exists) {
             </div>
         </div>
 
+        <!-- SEARCH BAR -->
+        <?php if ($table_exists): ?>
+            <div class="search-container">
+                <form method="GET" action="" class="search-form">
+                    <input
+                        type="text"
+                        name="search"
+                        class="search-input"
+                        placeholder="Search by title, description, submitter name, or student number..."
+                        value="<?= htmlspecialchars($search_query) ?>">
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <?php if (!empty($search_query)): ?>
+                        <a href="?" class="clear-btn">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    <?php endif; ?>
+                </form>
+                <?php if (!empty($search_query)): ?>
+                    <div class="search-info">
+                        <i class="fas fa-info-circle"></i>
+                        Showing results for: <strong>"<?= htmlspecialchars($search_query) ?>"</strong>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
         <div class="content-card">
             <?php if (!$table_exists): ?>
                 <div style="text-align:center; padding:80px 20px; color:#7f8c8d;">
@@ -253,8 +387,14 @@ CREATE TABLE request (
 
             <?php elseif (empty($requests)): ?>
                 <div style="text-align:center; padding:100px 20px; color:#95a5a6; font-size:1.4rem;">
-                    <p>No support requests at the moment.</p>
-                    <p>All systems are running smoothly!</p>
+                    <?php if (!empty($search_query)): ?>
+                        <i class="fas fa-search" style="font-size:3rem;margin-bottom:20px;"></i>
+                        <p>No requests found matching "<strong><?= htmlspecialchars($search_query) ?></strong>"</p>
+                        <p>Try adjusting your search terms</p>
+                    <?php else: ?>
+                        <p>No support requests at the moment.</p>
+                        <p>All systems are running smoothly!</p>
+                    <?php endif; ?>
                 </div>
 
             <?php else: ?>

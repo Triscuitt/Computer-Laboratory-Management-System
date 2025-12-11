@@ -18,10 +18,26 @@ if (isset($_GET['archive']) && is_numeric($_GET['archive'])) {
     exit();
 }
 
-$stmt = $conn->prepare("SELECT id, first_name, middle_name, last_name, suffix, username, email, role, student_number, created_at 
-                        FROM users WHERE account_status = 1 ORDER BY created_at DESC");
+// Get search query
+$search = $_GET['search'] ?? '';
+
+// Build query with search
+if (!empty($search)) {
+    $search_term = "%{$search}%";
+    $stmt = $conn->prepare("SELECT id, first_name, middle_name, last_name, suffix, username, email, role, student_number, created_at 
+                            FROM users 
+                            WHERE account_status = 1 
+                            AND (first_name LIKE ? OR last_name LIKE ? OR username LIKE ? OR email LIKE ? OR student_number LIKE ?)
+                            ORDER BY created_at DESC");
+    $stmt->bind_param("sssss", $search_term, $search_term, $search_term, $search_term, $search_term);
+} else {
+    $stmt = $conn->prepare("SELECT id, first_name, middle_name, last_name, suffix, username, email, role, student_number, created_at 
+                            FROM users WHERE account_status = 1 ORDER BY created_at DESC");
+}
+
 $stmt->execute();
 $users = $stmt->get_result();
+$total_results = $users->num_rows;
 ?>
 
 <!DOCTYPE html>
@@ -44,12 +60,20 @@ $users = $stmt->get_result();
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .header-box h1 {
             margin: 0;
             font-size: 2.4rem;
             font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .btn-add {
@@ -60,10 +84,122 @@ $users = $stmt->get_result();
             text-decoration: none;
             font-weight: 600;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
         }
 
         .btn-add:hover {
             transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-export {
+            background: #e74c3c;
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-export:hover {
+            background: #c0392b;
+        }
+
+        /* SEARCH BAR STYLES */
+        .search-container {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 14px 48px 14px 20px;
+            border: 2px solid #ddd;
+            border-radius: 50px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.2);
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .clear-btn {
+            background: #95a5a6;
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .clear-btn:hover {
+            background: #7f8c8d;
+        }
+
+        .search-info {
+            background: linear-gradient(135deg, #e8f4f8, #d6eaf8);
+            padding: 15px 25px;
+            border-radius: 12px;
+            color: #2c3e50;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
         }
 
         /* SUCCESS/ERROR MESSAGE STYLES */
@@ -222,6 +358,13 @@ $users = $stmt->get_result();
             transform: translateY(-3px);
             box-shadow: 0 12px 30px rgba(41, 128, 185, 0.5);
         }
+
+        .highlight {
+            background-color: #fff3cd;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 
@@ -231,8 +374,8 @@ $users = $stmt->get_result();
     <div class="main-content">
         <div class="header-box">
             <h1>User Management Panel</h1>
-            <div>
-                <a href="export_pdf.php?type=users" class="btn-add" style="background: #e74c3c; margin-right: 10px;">
+            <div class="header-actions">
+                <a href="export_pdf.php?type=users" class="btn-add btn-export">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </a>
                 <a href="add_user.php" class="btn-add">
@@ -257,6 +400,41 @@ $users = $stmt->get_result();
                 <span><?= htmlspecialchars($_SESSION['error']) ?></span>
             </div>
             <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <!-- SEARCH BAR -->
+        <div class="search-container">
+            <form method="GET" action="users.php" style="display: flex; gap: 15px; align-items: center; flex: 1; flex-wrap: wrap;">
+                <div class="search-box">
+                    <input
+                        type="text"
+                        name="search"
+                        placeholder="Search by name, username, email, or student number..."
+                        value="<?= htmlspecialchars($search) ?>"
+                        autofocus>
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search"></i>
+                    Search
+                </button>
+                <?php if (!empty($search)): ?>
+                    <a href="users.php" class="clear-btn">
+                        <i class="fas fa-times"></i>
+                        Clear
+                    </a>
+                <?php endif; ?>
+            </form>
+        </div>
+
+        <!-- SEARCH RESULTS INFO -->
+        <?php if (!empty($search)): ?>
+            <div class="search-info">
+                <i class="fas fa-info-circle"></i>
+                <span>
+                    Found <strong><?= $total_results ?></strong> result<?= $total_results != 1 ? 's' : '' ?> for "<strong><?= htmlspecialchars($search) ?></strong>"
+                </span>
+            </div>
         <?php endif; ?>
 
         <?php if ($users->num_rows > 0): ?>
@@ -310,12 +488,20 @@ $users = $stmt->get_result();
             </table>
         <?php else: ?>
             <div class="empty-state">
-                <i class="fas fa-users" style="font-size: 4rem; color: #bdc3c7; margin-bottom: 20px;"></i>
-                <h3 style="color: #7f8c8d;">No active users yet.</h3>
-                <p style="color: #95a5a6; margin: 15px 0;">Start by creating your first user account.</p>
-                <a href="add_user.php" class="btn-primary">
-                    <i class="fas fa-user-plus"></i> Add Your First User Now
-                </a>
+                <i class="fas fa-<?= !empty($search) ? 'search' : 'users' ?>" style="font-size: 4rem; color: #bdc3c7; margin-bottom: 20px;"></i>
+                <?php if (!empty($search)): ?>
+                    <h3 style="color: #7f8c8d;">No users found matching "<?= htmlspecialchars($search) ?>"</h3>
+                    <p style="color: #95a5a6; margin: 15px 0;">Try searching with different keywords or clear the search.</p>
+                    <a href="users.php" class="btn-primary">
+                        <i class="fas fa-times"></i> Clear Search
+                    </a>
+                <?php else: ?>
+                    <h3 style="color: #7f8c8d;">No active users yet.</h3>
+                    <p style="color: #95a5a6; margin: 15px 0;">Start by creating your first user account.</p>
+                    <a href="add_user.php" class="btn-primary">
+                        <i class="fas fa-user-plus"></i> Add Your First User Now
+                    </a>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     </div>
