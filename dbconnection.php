@@ -3,8 +3,8 @@ function getConnection()
 {
     $servername = "localhost";
     $username = "root";
-    $password = "#Diverson3008";
-    $database = "comlabsystem";
+    $password = "Avalanche3028";
+    $database = "comlab_management_system";
 
     $conn = new mysqli($servername, $username, $password, $database);
 
@@ -13,3 +13,4 @@ function getConnection()
     }
     return $conn;
 }
+?>

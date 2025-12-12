@@ -1,4 +1,5 @@
 <?php 
+    require_once '../model/user.php';
     use PHPMailer\PHPMailer\PHPMailer;
     use PHPMailer\PHPMailer\SMTP;
     use PHPMailer\PHPMailer\Exception;
@@ -38,7 +39,7 @@
     }
 
 function resendOtp(){
-    if(!isset($_SESSION['email']) || !isset($_SESSION['username'])){
+    if(!isset($_SESSION['registeredUserEmail']) || !isset($_SESSION['registeredUser'])){
         return [
             'status' => false,
             'message' => 'Session expired. please register again'
@@ -56,10 +57,10 @@ function resendOtp(){
         }
     }
     
-    $email = $_SESSION['email'];
-    $username = $_SESSION['username'];
-    $userId = getUserId($email);
-    $otp = generateOtp($userId);
+    $registeredUser = $_SESSION['registeredUser'];
+    $email = $registeredUser->getEmail();
+    $username = $registeredUser->getUsername();
+    $otp = generateOtp($email);
 
     //$_SESSION['otp_created_at'] = time();
     $_SESSION['otp_last_sent'] = time();
@@ -80,7 +81,7 @@ function resendOtp(){
 }
 
 function verifyOtpInput($enteredOtp) {
-    if(!isset($_SESSION['email'])) {
+    if(!isset($_SESSION['registeredUserEmail'])) {
         return [
             'status' => false,
             'message' =>'Session Expired. Please register again.',
@@ -95,7 +96,7 @@ function verifyOtpInput($enteredOtp) {
         ];
     }
 
-     $email = $_SESSION['email'];
+    /*
      $userId = getUserId($email);
 
      if(!$userId){
@@ -104,11 +105,14 @@ function verifyOtpInput($enteredOtp) {
             'message' => 'User not found. Please register again.',
             'redirect' => 'registration.php'
         ];
-     }
+     }*/
+    $registeredUser = $_SESSION['registeredUser'];
+    $email = $_SESSION['registeredUserEmail'];
 
-     $storedHash = verifyOtp($userId);
+    $storedHash = verifyOtp($email);
 
-     if($storedHash && password_verify($enteredOtp, $storedHash)) {
+    if($storedHash && password_verify($enteredOtp, $storedHash)) {
+        createUser($registeredUser->getStudentNo(), $registeredUser->getFirstName(), $registeredUser->getMiddleName(), $registeredUser->getLastName(), $registeredUser->getSuffix(), $registeredUser->getRole(), $registeredUser->getUsername(), $registeredUser->getEmail(), password_hash($registeredUser->getPassword(),PASSWORD_DEFAULT));
         updateAccount($email);
 
         // unset($_SESSION['otp_created_at']);

@@ -14,7 +14,7 @@
         if(strlen($length) < 2 ||strlen($length1) < 2) {
             return [
                 'status' => false,
-                'message' => "Your names must be at least 2 Characters."
+                'message' => "Your name must be at least 2 Characters."
             ];
         }
 

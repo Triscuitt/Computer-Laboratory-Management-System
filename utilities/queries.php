@@ -1,8 +1,11 @@
 <?php
-require_once "dbconnection.php";
-require_once "mailer.php";
-require_once 'model/user.php';
+require_once "../dbconnection.php";
+require_once "../mailer.php";
+require_once '../model/user.php';
 
+/* Get hashed password by email
+    return: string 
+*/
 function getHashedPassword($email)
 {
     $conn = getConnection();
@@ -24,6 +27,9 @@ function getHashedPassword($email)
     return $hashedPassword;
 }
 
+/* Get user by email
+    return: user object
+*/
 function getUser($email)
 {
     $conn = getConnection();
@@ -36,7 +42,7 @@ function getUser($email)
     $user = null;
 
     if ($row = $result->fetch_assoc()) {
-        $user = new User($row['first_name'], $row['last_name'], $row['role'], $row['username'], 'CCS', $row['email']);
+        $user = new User($row['first_name'], $row['last_name'], $row['role'], $row['username'],$row['student_number'], $row['email'], $row['password']);
     }
 
     $stmt->close();
@@ -44,6 +50,8 @@ function getUser($email)
 
     return $user;
 }
+
+// Get only userId by email
 function getUserId($email)
 {
     $conn = getConnection();
@@ -81,6 +89,7 @@ function getUserId($email)
     return $exists;
 } */
 
+// check email if exists
 function checkEmail($email)
 {
     $conn = getConnection();
@@ -121,6 +130,7 @@ function createUser($student_number, $first_name, $middle_name, $last_name, $suf
     $result = $stmt->execute();
     $userId = $conn->insert_id;
 
+    /*
     if ($result) {
         $otp = generateOtp($userId);
         $_SESSION['otp'] = $otp;
@@ -137,12 +147,14 @@ function createUser($student_number, $first_name, $middle_name, $last_name, $suf
             headto("registration.php");
         }
     }
+    */
 
     $stmt->close();
     $conn->close();
 
     return $result;
 }
+
 
 function updateAccount($email)
 {
@@ -173,11 +185,11 @@ function verifiedAccount($email)
     return $output;
 }
 
-function verifyOtp($id)
+function verifyOtp($email)
 {
     $conn = getConnection();
-    $stmt = $conn->prepare("SELECT code FROM verification_codes WHERE user_id = ? AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1");
-    $stmt->bind_param('i', $id);
+    $stmt = $conn->prepare("SELECT code FROM verification_codes WHERE user_email = ? AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1");
+    $stmt->bind_param('s', $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -193,24 +205,36 @@ function verifyOtp($id)
 }
 
 
-function generateOtp($userId)
+function generateOtp($email)
 {
     $conn = getConnection();
     $otp = rand(100000, 999999);
 
-    $deleteStmt = $conn->prepare("DELETE FROM verification_codes WHERE user_id = ?");
-    $deleteStmt->bind_param('i', $userId);
+    $deleteStmt = $conn->prepare("DELETE FROM verification_codes WHERE user_email = ?");
+    $deleteStmt->bind_param('s', $email);
     $deleteStmt->execute();
     $deleteStmt->close();
 
     $hashedOtp = password_hash($otp, PASSWORD_DEFAULT);
 
-    $stmt = $conn->prepare("INSERT INTO verification_codes (user_id, code)  VALUES (?, ?)");
-    $stmt->bind_param('is', $userId, $hashedOtp);
+    $stmt = $conn->prepare("INSERT INTO verification_codes (user_email, code)  VALUES (?, ?)");
+    $stmt->bind_param('ss', $email, $hashedOtp);
     $stmt->execute();
 
     $stmt->close();
     $conn->close();
 
     return $otp;
+}
+
+function sendOtp($email, $username){
+    $otp = generateOtp($email);
+
+    $sendOtpEmail = sendOtpEmail($email, $otp, $username);
+
+
+    if (!$sendOtpEmail) {
+       echo "Message could not be sent. Please Try again.";
+       headto("registration.php");
+    }
 }
