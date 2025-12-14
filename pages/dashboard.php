@@ -2,12 +2,13 @@
 session_start();
 require_once "../dbconnection.php";
 
-$conn = getConnection();
-
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'technician'])) {
     header("Location: ../index.php");
     exit();
 }
+
+// Get the database connection
+$conn = getConnection();
 
 
 $total_users = $conn->query("SELECT COUNT(*) FROM users WHERE account_status = 1")->fetch_row()[0] ?? 0;

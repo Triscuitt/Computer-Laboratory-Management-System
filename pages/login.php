@@ -1,42 +1,77 @@
 <?php
-session_start();
+
 require "../dbconnection.php";
 require "../utilities/utils.php";
 require "../utilities/queries.php";
 require_once '../model/user.php';
-
+session_start();
 checkIfLoggedIn();
-checkPost();
+
+if (isset($_POST['loginBtn'])) {
+    login($_POST['email'], $_POST['password']);
+}
 
 function checkIfLoggedIn()
 {
-    if (isset($_SESSION['loggedInUser'])) {
-        headto("main.php");
+    if (isset($_SESSION['User'])) {
+        redirectByRole($_SESSION['User']->getRole());
     }
 }
 
-function checkPost()
+function redirectByRole($role)
 {
-    if (isset($_POST['loginBtn'])) {
-        login($_POST['email'], $_POST['password']);
+    switch ($role) {
+        case 'admin':
+        case 'technician':
+            headto("../pages/dashboard.php");
+            exit();
+        case 'faculty':
+        case 'student':
+        default:
+            headto("../pages/main.php");
+            exit();
     }
 }
 
-function login($email, $password)
+function login($input, $password)
 {
-    $email = trim($email);
+    $input = trim($input);
     $password = trim($password);
 
-    if (password_verify($password, getHashedPassword($email)) && verifiedAccount($email)) {
-        session_regenerate_id(true);
-        $_SESSION["loggedInUser"] = getUserId($email);
-        $_SESSION['User'] = getUser($email);
-        headto("main.php");
-        exit;
-    } else if (!verifiedAccount($email)) {
-        $_SESSION['alertMessage'] = "Account not found or not activated.";
+    if (empty($input) || empty($password)) {
+        $_SESSION['alertMessage'] = "Please fill in all fields.";
+        return;
+    }
+
+    // Use the fixed getHashedPassword from queries.php (supports username or email)
+    $hashedPassword = getHashedPassword($input);
+
+    if (!$hashedPassword) {
+        $_SESSION['alertMessage'] = "Invalid email/username or password. Please try again.";
+        // Debug: Uncomment below to see if user exists
+        // $_SESSION['alertMessage'] .= " (User not found for: " . htmlspecialchars($input) . ")";
+        return;
+    }
+
+    // Verify password and check if account is verified
+    if (password_verify($password, $hashedPassword) && verifiedAccount($input)) {
+        $user = getUser($input);
+
+        if ($user) {
+            // Regenerate session ID for security
+            session_regenerate_id(true);
+            $_SESSION["loggedInUser"] = getUserId($user->getEmail());
+            $_SESSION['User'] = $user;
+
+            // Redirect based on role
+            redirectByRole($user->getRole());
+        } else {
+            $_SESSION['alertMessage'] = "Account not found.";
+        }
+    } else if (verifiedAccount($input) != 1) {
+        $_SESSION['alertMessage'] = "Account not found or not activated. Please check your email for verification.";
     } else {
-        $_SESSION['alertMessage'] = "Invalid username or password";
+        $_SESSION['alertMessage'] = "Invalid email/username or password. Please try again.";
     }
 }
 ?>
@@ -70,19 +105,19 @@ function login($email, $password)
 
                 <?php if (isset($_SESSION['alertMessage'])): ?>
                     <div class="alert alert-error">
-                        <?php echo $_SESSION['alertMessage'];
+                        <?php echo htmlspecialchars($_SESSION['alertMessage']);
                         unset($_SESSION['alertMessage']); ?>
                     </div>
                 <?php endif; ?>
 
                 <form method="POST" class="form">
                     <div class="form-group">
-                        <label>Email <span class="required">*</span></label>
+                        <label>Email or Username <span class="required">*</span></label>
                         <div class="input-wrapper">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
-                            <input type="email" name="email" placeholder="Enter your email address" class="input" required>
+                            <input type="text" name="email" placeholder="Enter your email or username" class="input" required>
                         </div>
                     </div>
 

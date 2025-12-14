@@ -4,6 +4,7 @@ require_once '../model/user.php';
 require_once '../model/equipment.php';
 require_once '../model/session.php';
 require_once '../model/attendance.php';
+require_once '../utilities/validation.php';
 
 session_start();
 if (!isset($_SESSION['loggedInUser']) && !isset($_SESSION['User'])) {
@@ -27,20 +28,6 @@ $role_access = [
   '📩 Requests' => [['faculty', 'Admin'], 'requests_page']
 ];
 
-
-if (isset($_POST['addEquipment'])) {
-  $equipmentName = $_POST['equipment_name'];
-  $equipmentCategory = $_POST['equipment_category'];
-  $equipmentStatus = $_POST['equipment_status'];
-  addEquipment($equipmentName, $equipmentCategory, $equipmentStatus);
-}
-
-// Add equipment
-function addEquipment($equipment_name, $equipment_category, $equipment_status)
-{
-  $new_equipment = new Equipment($equipment_name, $equipment_category, $equipment_status);
-  // insert to database
-}
 ?>
 <!doctype html>
 <html lang="en">
@@ -181,7 +168,6 @@ function addEquipment($equipment_name, $equipment_category, $equipment_status)
         <?php endforeach; ?>
         <li><a class="nav-link" href="#" data-nav="profile">👤 Profile</a></li>
       </ul>
-      <div style="color: white" class="mt-auto small text-muted">Version 0.1 • First design</div>
     </aside>
 
     <!-- Main content -->
@@ -474,7 +460,8 @@ function addEquipment($equipment_name, $equipment_category, $equipment_status)
               <div class="mt-3"><button class="btn btn-outline-secondary btn-sm">Change Photo</button></div>
             </div>
             <div class="col-md-8">
-              <form>
+              <div id="profileFormError" class="alert alert-danger d-none mt-2"></div>
+              <form method="POST">
                 <div class="mb-2">
                   <label class="form-label small">Full name</label>
                   <input disabled class="form-control form-control-sm" value="<?= $user->getFirstName() . ' ' . $user->getLastName() ?>">
@@ -493,10 +480,10 @@ function addEquipment($equipment_name, $equipment_category, $equipment_status)
                 </div>
                 <div class="mb-2">
                   <label class="form-label small">Change Password</label>
-                  <input class="form-control form-control-sm" placeholder="New password">
+                  <input id="newPassword" name="newPassword" class="form-control form-control-sm" placeholder="New password">
                 </div>
                 <div class="mt-3">
-                  <button class="btn btn-primary btn-sm">Save</button>
+                  <button id="changePasswordBtn" class="btn btn-primary btn-sm" onclick="changePassword()">Save</button>
                   <a class="btn btn-danger btn-sm ms-2" href='logout.php'>Logout</a>
                 </div>
               </form>
@@ -1153,6 +1140,46 @@ function addEquipment($equipment_name, $equipment_category, $equipment_status)
     }
 
     // Utility functions
+    async function changePassword(){
+      const newPassword = document.getElementById('newPassword').value.trim();
+
+      const btn = document.getElementById('changePasswordBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+      
+      try{
+        const response = await fetch('../api/change_password.php',{
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            new_password: newPassword
+          })
+        })
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Try to parse JSON
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          const text = await response.text();
+          throw new Error('Invalid JSON response: ' + text.substring(0, 200));
+        }
+
+        if (data.success) {
+          showError('profileFormError', data.message);
+        }
+      }catch(error){
+        console.error('Error changing password:', error.message );
+        showError('profileFormError', 'Error: ' + error.message );
+      }finally{
+        btn.disabled = false;
+        btn.textContent = 'Save';
+      }
+    }
+
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;

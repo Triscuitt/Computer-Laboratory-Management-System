@@ -77,6 +77,16 @@
         return ['status' => true];
     }
 
+    function validateNewPassword($password){
+        $check =  preg_match('@[A-Z]@', $password) &&
+        preg_match('@[a-z]@', $password) &&
+        preg_match('@[0-9]@', $password) &&
+        preg_match('@[^a-zA-Z0-9]@', $password) &&
+        strlen($password) >= 8;
+
+        return $check;
+    }
+
     function validatePassword($password, $confirmPassword) {
         $check =  preg_match('@[A-Z]@', $password) &&
         preg_match('@[a-z]@', $password) &&

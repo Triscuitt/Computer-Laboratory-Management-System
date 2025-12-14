@@ -1,4 +1,5 @@
 <?php
+require_once '../dbconnection.php';
 class User
 {
     # user infox    
@@ -96,8 +97,28 @@ class User
         return $this->password;
     }
 
-    public function setPassword($newPassword)
+    public static function setPassword($newPassword, $email)
     {
-        $this->password = $newPassword;
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+
+        $conn = getConnection();
+        $stmt = $conn->prepare("
+            UPDATE users
+            SET password = ?
+            WHERE email = ?
+        ");
+        $stmt->bind_param('ss', $hashedPassword, $email);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+
+        if ($result) {
+            return [
+                'success' => true, 
+                'message' => 'Password changed successfully'
+            ];
+        } else {
+            return ['success' => false, 'message' => 'Change password failed'];
+        }
     }
 }
