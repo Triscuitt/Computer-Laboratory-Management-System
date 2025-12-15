@@ -15,7 +15,8 @@ function checkPost()
 {
     if (isset($_POST['registerBtn'])) {
         $_SESSION['formData'] = $_POST;
-        register($_POST['stud_no'], $_POST['fname'], $_POST['midname'], $_POST['lname'], $_POST['suffix'], $_POST['userRole'], $_POST['username'], $_POST['email'], $_POST['password'], $_POST['confirmPassword']);
+        register(isset($_POST['stud_no']) ? $_POST['stud_no']: 'N/A', $_POST['fname'], $_POST['midname'], $_POST['lname'], $_POST['suffix'], $_POST['userRole'], $_POST['username'], $_POST['email'], $_POST['password'], $_POST['confirmPassword']);
+        echo 'Num: '.$_POST['stud_no'];
     }
 }
 
@@ -33,8 +34,10 @@ function register($student_number, $first_name, $middle_name, $last_name, $suffi
     $password = trim($password);
     $confirmPassword =  trim($confirmPassword);
 
+    echo 'Num: '.$student_number;
+
     // Validation array
-    $validation = [validateEmptyField($student_number, $fname, $lname, $email, $username, $password, $confirmPassword), validateLength($fname, $lname),  validateStudentNumber($student_number), validateEmail($email), validatePassword($password, $confirmPassword)];
+    $validation = [validateEmptyField($student_number, $fname, $lname, $email, $username, $password, $confirmPassword), validateLength($fname, $lname),  validateStudentNumber($student_number, $role), validateEmail($email), validatePassword($password, $confirmPassword)];
 
     // iterates the validation array and validate one by one.
     foreach ($validation as $validate) {
@@ -51,24 +54,6 @@ function register($student_number, $first_name, $middle_name, $last_name, $suffi
     $_SESSION['registeredUser'] = $registeredUser;
     headto('../pages/verification.php');
 
-    /*
-    if (!$field['status']) {
-        $_SESSION['alertMessage'] = $field['message'];
-    } else if (!$length['status']) {
-        $_SESSION['alertMessage'] = $length['message'];
-    } else if (!$stud_no['status']) {
-        $_SESSION['alertMessage'] = $stud_no['message'];
-    } else if (!$validateEmail['status']) {
-        $_SESSION['alertMessage'] = $validateEmail['message'];
-    } else if (!$validatePassword['status']) {
-        $_SESSION['alertMessage'] = $validatePassword['message'];
-    } 
-    else if (createUser($student_number, $fname, $midname, $lname, $suffix, $role, $username, $email, password_hash($password, PASSWORD_DEFAULT))) {
-        unset($_SESSION['formData']);
-        headto('verification.php');
-    } else {
-        $_SESSION['alertMessage'] = "Account creation failed.";  
-    }*/
 }
 ?>
 
@@ -146,7 +131,7 @@ function register($student_number, $first_name, $middle_name, $last_name, $suffi
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                                 </svg>
-                                <input type="text" name="stud_no" placeholder="Enter student number" class="input" value="<?php echo isset($_SESSION['formData']['stud_no']) ? htmlspecialchars($_SESSION['formData']['stud_no']) : ''; ?>">
+                                <input id="studnoInput" type="text" name="stud_no" placeholder="Enter student number" class="input" value="<?php echo isset($_SESSION['formData']['stud_no']) ? htmlspecialchars($_SESSION['formData']['stud_no']) : ''; ?>">
                             </div>
                         </div>
                     </div>
@@ -175,7 +160,7 @@ function register($student_number, $first_name, $middle_name, $last_name, $suffi
                         <div class="form-group">
                             <label>Role</label>
                             <div class="input-wrapper">
-                                <select name="userRole" class="form-select form-select-sm" style="max-width:220px">
+                                <select id="userRoleInput" name="userRole" class="form-select form-select-sm" style="max-width:220px">
                                     <option disabled selected value> -- select an option -- </option>
                                     <option value="student">Student</option>
                                     <option value="faculty">Faculty</option>
@@ -228,6 +213,24 @@ function register($student_number, $first_name, $middle_name, $last_name, $suffi
             </div>
         </div>
     </main>
+    <script>
+        const selectElement = document.getElementById('userRoleInput');
+        const studentNumInput = document.getElementById('studnoInput');
+
+        selectElement.addEventListener('change', (event) =>{
+
+            const role = event.target.value;
+            if(role == 'faculty'){
+                studentNumInput.value = 'N/A';
+                studentNumInput.disabled = true;
+                console.log(studentNumInput.textContent);
+            }else{
+                studentNumInput.disabled = false;
+                studentNumInput.value = '';
+            }
+            console.log('Role',role);
+        })
+    </script>
 </body>
 
 </html>

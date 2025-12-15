@@ -21,8 +21,11 @@
         return ['status' => true];
     }
 
-    function validateStudentNumber($number) {
+    function validateStudentNumber($number, $role) {
         $number = trim($number);
+        if ($number === 'N/A' && $role === 'faculty') {
+            return ['status' => true];
+        }
         if (!preg_match('@^\d{4}-\d{5}$@', $number)) {
             return [
                 'status' => false,
