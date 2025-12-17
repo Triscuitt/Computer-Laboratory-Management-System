@@ -14,15 +14,18 @@
         if(strlen($length) < 2 ||strlen($length1) < 2) {
             return [
                 'status' => false,
-                'message' => "Your names must be at least 2 Characters."
+                'message' => "Your name must be at least 2 Characters."
             ];
         }
 
         return ['status' => true];
     }
 
-    function validateStudentNumber($number) {
+    function validateStudentNumber($number, $role) {
         $number = trim($number);
+        if ($number === 'N/A' && $role === 'faculty') {
+            return ['status' => true];
+        }
         if (!preg_match('@^\d{4}-\d{5}$@', $number)) {
             return [
                 'status' => false,
@@ -75,6 +78,16 @@
         }
 
         return ['status' => true];
+    }
+
+    function validateNewPassword($password){
+        $check =  preg_match('@[A-Z]@', $password) &&
+        preg_match('@[a-z]@', $password) &&
+        preg_match('@[0-9]@', $password) &&
+        preg_match('@[^a-zA-Z0-9]@', $password) &&
+        strlen($password) >= 8;
+
+        return $check;
     }
 
     function validatePassword($password, $confirmPassword) {
