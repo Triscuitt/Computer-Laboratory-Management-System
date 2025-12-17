@@ -18,50 +18,50 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <!-- Navigation Menu -->
     <nav class="sidebar-nav">
         <ul>
-            <li class="<?= $current_page === 'dashboard.php' ? 'active' : '' ?>">
-                <a href="dashboard.php">
+            <li class="<?= $current_page === '../pages/dashboard.php' ? 'active' : '' ?>">
+                <a href="../pages/dashboard.php">
                     <i class="fas fa-chart-line"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
 
-            <li class="<?= $current_page === 'users.php' ? 'active' : '' ?>">
-                <a href="users.php">
+            <li class="<?= $current_page === '../pages/users.php' ? 'active' : '' ?>">
+                <a href="../pages/users.php">
                     <i class="fas fa-users"></i>
                     <span>Manage Users</span>
                 </a>
             </li>
 
-            <li class="<?= $current_page === 'session.php' ? 'active' : '' ?>">
-                <a href="session.php">
+            <li class="<?= $current_page === '../pages/session.php' ? 'active' : '' ?>">
+                <a href="../pages/session.php">
                     <i class="fas fa-clipboard-list"></i>
                     <span>Session Records</span>
                 </a>
             </li>
 
-            <li class="<?= $current_page === 'inventory.php' || $current_page === 'inventory_view.php' ? 'active' : '' ?>">
-                <a href="inventory.php">
+            <li class="<?= $current_page === '../pages/inventory.php' || $current_page === '../pages/inventory_view.php' ? 'active' : '' ?>">
+                <a href="../pages/inventory.php">
                     <i class="fas fa-desktop"></i>
                     <span>Lab Equipment</span>
                 </a>
             </li>
 
-            <li class="<?= $current_page === 'borrow.php' || $current_page === 'borrow_add.php' ? 'active' : '' ?>">
-                <a href="borrow.php">
+            <li class="<?= $current_page === '../pages/borrow.php' || $current_page === 'borrow_add.php' ? 'active' : '' ?>">
+                <a href="../pages/borrow.php">
                     <i class="fas fa-hand-holding"></i>
                     <span>Borrow Management</span>
                 </a>
             </li>
 
-            <li class="<?= $current_page === 'request_panel.php' ? 'active' : '' ?>">
-                <a href="request_panel.php">
+            <li class="<?= $current_page === '../pages/request_panel.php' ? 'active' : '' ?>">
+                <a href="../pages/request_panel.php">
                     <i class="fas fa-envelope-open-text"></i>
                     <span>Requests Panel</span>
                 </a>
             </li>
 
-            <li class="<?= $current_page === 'reports.php' ? 'active' : '' ?>">
-                <a href="reports.php">
+            <li class="<?= $current_page === '../pages/reports.php' ? 'active' : '' ?>">
+                <a href="../pages/reports.php">
                     <i class="fas fa-file-alt"></i>
                     <span>Reports</span>
                 </a>
@@ -84,7 +84,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     <!-- Logout Button -->
     <div class="sidebar-logout">
-        <a href="../logout.php" class="logout-btn" onclick="return confirm('Are you sure you want to log out?')">
+        <a href="../pages/logout.php" class="logout-btn" onclick="return confirm('Are you sure you want to log out?')">
             <i class="fas fa-sign-out-alt"></i>
             <span>Log Out</span>
         </a>
