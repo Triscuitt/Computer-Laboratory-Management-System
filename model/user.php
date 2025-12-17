@@ -1,27 +1,31 @@
 <?php
+require_once '../dbconnection.php';
 class User
 {
     # user infox    
     private $first_name;
     private $middle_name;
     private $last_name;
+    private $suffix;
 
     # account info
     private $email;
     private $role;
+    private $student_no;
     private $department;
     private $profile_image;
     private $username;
     private $password;
 
-    function __construct($firstName, $lastName, $userRole, $userNickname, $userDepartment, $userEmail)
+    function __construct($firstName, $lastName, $userRole, $userNickname, $studentNumber, $userEmail, $userPassword)
     {
         $this->first_name = $firstName;
         $this->last_name = $lastName;
         $this->role = $userRole;
         $this->username = $userNickname;
-        $this->department = $userDepartment;
+        $this->student_no =  $studentNumber;
         $this->email = $userEmail;
+        $this->password = $userPassword;
     }
 
     public function getFirstName()
@@ -31,12 +35,23 @@ class User
 
     public function getMiddleName()
     {
+        if (empty($this->middle_name)) {
+            return '';
+        }
         return $this->middle_name;
     }
 
     public function getLastName()
     {
         return $this->last_name;
+    }
+
+    public function getSuffix()
+    {
+        if (empty($this->suffix)) {
+            return '';
+        }
+        return $this->suffix;
     }
 
     public function getEmail()
@@ -48,6 +63,11 @@ class User
     public function getRole()
     {
         return $this->role;
+    }
+
+    public function getStudentNo()
+    {
+        return $this->student_no;
     }
 
     public function getDepartment()
@@ -79,8 +99,58 @@ class User
         return $this->password;
     }
 
-    public function setPassword($newPassword)
+    public static function createAdmin()
     {
-        $this->password = $newPassword;
+        $hashedPassword = password_hash('password', PASSWORD_DEFAULT);
+        $conn = getConnection();
+        $stmt = $conn->prepare('
+            INSERT INTO users (
+            first_name,
+            middle_name,
+            last_name,
+            username,
+            email,
+            password,
+            role,
+            account_status) VALUES ( "admin", "admin", "admin", "admin_user", "admin123@dyci.edu.ph", ?, "admin", 1); 
+        ');
+        $stmt->bind_param('s', $hashedPassword);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+
+        if ($result) {
+            return [
+                'success' => true,
+                'message' => 'admin account created'
+            ];
+        } else {
+            return ['success' => false, 'message' => 'account creation failed'];
+        }
+    }
+
+    public static function setPassword($newPassword, $email)
+    {
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+
+        $conn = getConnection();
+        $stmt = $conn->prepare("
+            UPDATE users
+            SET password = ?
+            WHERE email = ?
+        ");
+        $stmt->bind_param('ss', $hashedPassword, $email);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+
+        if ($result) {
+            return [
+                'success' => true,
+                'message' => 'Password changed successfully'
+            ];
+        } else {
+            return ['success' => false, 'message' => 'Change password failed'];
+        }
     }
 }

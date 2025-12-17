@@ -7,5 +7,5 @@ $_SESSION['role'] = 'admin';
 $_SESSION['fullname'] = 'Main Admin';
 
 
-header("Location: admin/dashboard.php");
+header("Location: pages/dashboard.php");
 exit();

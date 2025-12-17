@@ -4,7 +4,7 @@ function getConnection()
     $servername = "localhost";
     $username = "root";
     $password = "#Diverson3008";
-    $database = "comlabsystem";
+    $database = "comlab_management_system";
 
     $conn = new mysqli($servername, $username, $password, $database);
 

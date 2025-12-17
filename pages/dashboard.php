@@ -1,14 +1,16 @@
 <?php
+require_once "../model/user.php";
+require_once "../dbconnection.php";
 session_start();
-require_once '../dbconnection.php';
 
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'technician'])) {
+if ($_SESSION['User']->getRole() != 'admin') {
     header("Location: ../index.php");
     exit();
 }
 
 // Get the database connection
 $conn = getConnection();
+
 
 $total_users = $conn->query("SELECT COUNT(*) FROM users WHERE account_status = 1")->fetch_row()[0] ?? 0;
 $total_equipment = $conn->query("SELECT COUNT(*) FROM equipment")->fetch_row()[0] ?? 0;
@@ -106,7 +108,7 @@ if ($conn->query("SHOW TABLES LIKE 'request'")->num_rows > 0) {
     <div class="main-content">
         <div class="header">
             <h1 style="color:white">Welcome back, <?= htmlspecialchars($_SESSION['first_name'] ?? 'Admin') ?>!</h1>
-            <p style="font-size: 1.5rem;color:#2c3e50">DYCI Computer Lab Management System</p>
+            <p style=" font-size: 1.5rem;color:#2c3e50">DYCI Computer Lab Management System</p>
         </div>
 
         <div class="cards">

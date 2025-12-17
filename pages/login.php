@@ -1,11 +1,13 @@
 <?php
-session_start();
+
 require "../dbconnection.php";
 require "../utilities/utils.php";
 require "../utilities/queries.php";
 require_once '../model/user.php';
-
+session_start();
 checkIfLoggedIn();
+
+
 
 if (isset($_POST['loginBtn'])) {
     login($_POST['email'], $_POST['password']);
@@ -13,8 +15,8 @@ if (isset($_POST['loginBtn'])) {
 
 function checkIfLoggedIn()
 {
-    if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
-        redirectByRole($_SESSION['role']);
+    if (isset($_SESSION['User'])) {
+        redirectByRole($_SESSION['User']->getRole());
     }
 }
 
@@ -23,12 +25,12 @@ function redirectByRole($role)
     switch ($role) {
         case 'admin':
         case 'technician':
-            header("Location: dashboard.php");
+            headto("../pages/dashboard.php");
             exit();
         case 'faculty':
         case 'student':
         default:
-            header("Location: main.php");
+            headto("../pages/main.php");
             exit();
     }
 }
@@ -48,49 +50,24 @@ function login($input, $password)
 
     if (!$hashedPassword) {
         $_SESSION['alertMessage'] = "Invalid email/username or password. Please try again.";
+        echo $_SESSION['alertMessage'];
         // Debug: Uncomment below to see if user exists
         // $_SESSION['alertMessage'] .= " (User not found for: " . htmlspecialchars($input) . ")";
         return;
     }
 
-    // Check account status first
-    $accountStatus = verifiedAccount($input);
-
-    // Debug: Uncomment to see account status
-    // $_SESSION['alertMessage'] = "Debug - Account Status: " . $accountStatus . " | Password verify: " . (password_verify($password, $hashedPassword) ? "YES" : "NO");
-    // return;
-
     // Verify password and check if account is verified
-    if (password_verify($password, $hashedPassword) && $accountStatus == 1) {
+    if (password_verify($password, $hashedPassword) && verifiedAccount($input)) {
         $user = getUser($input);
 
         if ($user) {
             // Regenerate session ID for security
             session_regenerate_id(true);
-
-            // Get user ID and full data from database
-            $userId = getUserId($input);
-            $conn = getConnection();
-            $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? OR username = ?");
-            $stmt->bind_param("ss", $input, $input);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $userData = $result->fetch_assoc();
-            $stmt->close();
-            $conn->close();
-
-            // Set session variables that dashboard.php expects
-            $_SESSION['user_id'] = $userId;
-            $_SESSION['role'] = $userData['role'];
-            $_SESSION['first_name'] = $userData['first_name'];
-            $_SESSION['middle_name'] = $userData['middle_name'] ?? '';
-            $_SESSION['last_name'] = $userData['last_name'];
-            $_SESSION['student_number'] = $userData['student_number'] ?? '';
-            $_SESSION['email'] = $userData['email'];
-            $_SESSION['username'] = $userData['username'];
+            $_SESSION["loggedInUser"] = getUserId($user->getEmail());
+            $_SESSION['User'] = $user;
 
             // Redirect based on role
-            redirectByRole($userData['role']);
+            redirectByRole($user->getRole());
         } else {
             $_SESSION['alertMessage'] = "Account not found.";
         }
@@ -101,6 +78,7 @@ function login($input, $password)
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -163,7 +141,7 @@ function login($input, $password)
                         Login
                     </button>
 
-                    <p class="login-text">Don't have an account? <a href="registration.php" class="link">Register here</a></p>
+                    <p class="login-text">Don't have an account? <a href="../pages/registration.php" class="link">Register here</a></p>
                 </form>
             </div>
         </div>
